@@ -5,50 +5,38 @@ import (
 )
 
 type Buffer struct {
-	buf        []byte
-	head, tail int
-	full       bool
+	buf     []byte
+	maxSize int
 }
 
 func NewBuffer(size int) *Buffer {
-	return &Buffer{buf: make([]byte, size), head: 0, tail: 0, full: false}
+	return &Buffer{buf: []byte{}, maxSize: size}
 }
 
 func (b *Buffer) ReadByte() (byte, error) {
-	if b.head == b.tail && !b.full {
+	if len(b.buf) == 0 {
 		return 0, fmt.Errorf("buffer empty")
 	}
-	c := b.buf[b.head]
-	b.head = (b.head + 1) % len(b.buf)
-	b.full = false
+	c := b.buf[0]
+	b.buf = b.buf[1:]
 	return c, nil
 }
 
 func (b *Buffer) WriteByte(c byte) error {
-	if b.full {
+	if len(b.buf) == b.maxSize {
 		return fmt.Errorf("buffer full")
 	}
-	b.buf[b.tail] = c
-	b.tail = (b.tail + 1) % len(b.buf)
-	if b.tail == b.head {
-		b.full = true
-	}
+	b.buf = append(b.buf, c)
 	return nil
 }
 
 func (b *Buffer) Overwrite(c byte) {
-	if b.full {
-		b.head = (b.head + 1) % len(b.buf)
+	if len(b.buf) == b.maxSize {
+		b.buf = b.buf[1:]
 	}
-	b.buf[b.tail] = c
-	b.tail = (b.tail + 1) % len(b.buf)
-	if b.tail == b.head {
-		b.full = true
-	}
+	b.buf = append(b.buf, c)
 }
 
 func (b *Buffer) Reset() {
-	b.head = 0
-	b.tail = 0
-	b.full = false
+	b.buf = []byte{}
 }
